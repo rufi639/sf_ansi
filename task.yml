@@ -1,0 +1,60 @@
+---
+- hosts: app
+  remote_user: ansiboy
+  become: yes
+  gather_facts: true
+  tasks:
+  - name: Docker install yum
+    ansible.builtin.yum:
+      name: docker
+      state: latest
+    when: ansible_os_family == "RedHat"
+  - name: Add Docker GPG apt Key
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+    when: ansible_os_family == "Debian"
+  - name: Add Docker Repository
+    apt_repository:
+      repo: deb https://download.docker.com/linux/ubuntu focal stable
+      state: present
+    when: ansible_os_family == "Debian"
+  - name: Update apt and install docker-ce
+    apt:
+      name: docker-ce
+      state: latest
+      update_cache: true
+    when: ansible_os_family == "Debian"
+  - name: Docker start
+    ansible.builtin.systemd:
+      name: docker
+      state: started
+      enabled: yes
+- hosts: database
+  remote_user: ansiboy
+  become: yes
+  gather_facts: true
+  tasks:
+  - name: PostgresSQL install {{version_db}}
+    ansible.builtin.apt:
+      name: postgresql-{{version_db}}
+      state: present
+  - name: PostgreSQL create folder
+    ansible.builtin.file:
+      path: "{{ data_path }}"
+      state: directory
+      owner: postgres
+      group: postgres
+      mode: "0777"
+
+  - name: PostgresSQL init
+    ansible.builtin.shell: "/usr/lib/postgresql/{{ version_db }}/bin/initdb -D {{ data_path }}"
+    become: true
+    become_user: postgres
+    vars:
+      ansible_ssh_pipelining: true
+  - name: PostgreSQL start/enable
+    ansible.builtin.service:
+      name: postgresql
+      state: started
+      enabled: true

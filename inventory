@@ -1,0 +1,7 @@
+[app]
+10.129.0.22
+10.129.0.8
+[database]
+127.0.0.1 version_db="14" data_path="/opt/postgresql777"
+[web]
+127.0.0.1
